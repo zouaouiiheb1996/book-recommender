@@ -1,0 +1,29 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+
+# IDE files
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Jupyter notebooks
+Notebooks/
+
+# Environment variables
+.env
+
+# Documentation
+README.md
+
+# OS files
+.DS_Store
+Thumbs.db
