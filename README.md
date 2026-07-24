@@ -180,23 +180,6 @@ http://localhost:7860
 
 
 
-#  Screenshots
-
-## Dashboard
-
-> Add a screenshot of your Gradio dashboard here.
-
-Example:
-
-```markdown
-![Dashboard](assets/dashboard.png)
-```
-
----
-
-
-
-
 #  Dataset
 
 The recommendation system uses a book dataset containing:
