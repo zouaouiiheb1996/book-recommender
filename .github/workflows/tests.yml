@@ -2,26 +2,52 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+
   pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  test:
+
+  test-and-build:
 
     runs-on: ubuntu-latest
 
     steps:
 
+      # --------------------------------------------------
+      # Checkout
+      # --------------------------------------------------
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+
+      # --------------------------------------------------
+      # Python
+      # --------------------------------------------------
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+
+
+      # --------------------------------------------------
+      # Install dependencies
+      # --------------------------------------------------
 
       - name: Install dependencies
         run: |
@@ -29,21 +55,88 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
+
+      # --------------------------------------------------
+      # Run tests
+      # --------------------------------------------------
+
       - name: Run tests
         run: |
           python -m pytest tests/test_app.py
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+
+      # --------------------------------------------------
+      # Docker metadata / tags
+      # --------------------------------------------------
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
         with:
-          registry: ghcr.io
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+
+      # --------------------------------------------------
+      # Build Docker image
+      # --------------------------------------------------
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+
+      # --------------------------------------------------
+      # Docker smoke test
+      # --------------------------------------------------
+
+      - name: Test Docker image
+        run: |
+          docker run --rm \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${GITHUB_SHA::7} \
+            python -c "from app.gradio_app import format_authors, load_books; books = load_books(); print('Docker smoke test passed'); print(f'Loaded {len(books)} books'); print(format_authors('Author A;Author B'))"
+
+
+      # --------------------------------------------------
+      # Security scan
+      # --------------------------------------------------
+
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${GITHUB_SHA::7}
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+
+      # --------------------------------------------------
+      # Login to GHCR
+      # --------------------------------------------------
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/book-recommender:latest .
+
+      # --------------------------------------------------
+      # Push Docker image
+      # --------------------------------------------------
 
       - name: Push Docker image
+        if: github.event_name != 'pull_request'
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/book-recommender:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${GITHUB_SHA::7}
