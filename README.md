@@ -382,29 +382,6 @@ Book descriptions are converted into vector embeddings and stored in ChromaDB, e
 
 ---
 
-# Security and Configuration
-
-- API keys are provided through environment variables.
-- `.env` is excluded from Git using `.gitignore`.
-- Docker images are scanned for **HIGH** and **CRITICAL** vulnerabilities using Trivy.
-- GitHub Actions uses repository secrets for EC2 SSH credentials.
-- The EC2 Docker container uses Docker's `unless-stopped` restart policy.
-
----
-
-# Future Improvements
-
-- HTTPS with a custom domain
-- Nginx reverse proxy
-- More comprehensive test coverage
-- Faster ChromaDB/vector database startup
-- Smaller Docker image
-- Deployment rollback strategy
-- Application logging and monitoring
-- Docker Compose for easier local and server management
-
----
-
 # Author
 
 **Iheb Zouaoui**
