@@ -23,9 +23,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
+
       - name: Deploy to EC2
         run: |
           ssh "${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}" << 'EOF'
+            set -e
 
             docker pull ghcr.io/zouaouiiheb1996/book-recommender:latest
 
@@ -35,12 +37,11 @@ jobs:
             docker run -d \
               --name book-recommender \
               --restart unless-stopped \
-              --env-file /home/ssm-user/book-recommender.env \
+              --env-file /home/ubuntu/book-recommender.env \
               -p 7860:7860 \
               ghcr.io/zouaouiiheb1996/book-recommender:latest
 
             sleep 15
 
             curl -f http://localhost:7860/
-
           EOF
