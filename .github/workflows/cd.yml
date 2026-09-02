@@ -40,8 +40,17 @@ jobs:
               --env-file /home/ubuntu/book-recommender.env \
               -p 7860:7860 \
               ghcr.io/zouaouiiheb1996/book-recommender:latest
+            for i in {1..12}; do
+              if curl -fs http://localhost:7860/ > /dev/null; then
+               echo "Application is ready"
+               exit 0
+              fi
 
-            sleep 15
+              echo "Waiting for application..."
+              sleep 10
+            done
 
-            curl -f http://localhost:7860/
+            echo "Application did not become ready"
+            exit 1
+            
           EOF
