@@ -23,16 +23,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-
       - name: Deploy to EC2
         run: |
           ssh "${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}" << 'EOF'
             set -e
 
+            echo "Pulling latest Docker image..."
+
             docker pull ghcr.io/zouaouiiheb1996/book-recommender:latest
+
+            echo "Stopping old container..."
 
             docker stop book-recommender || true
             docker rm book-recommender || true
+
+            echo "Starting new container..."
 
             docker run -d \
               --name book-recommender \
@@ -40,17 +45,25 @@ jobs:
               --env-file /home/ubuntu/book-recommender.env \
               -p 7860:7860 \
               ghcr.io/zouaouiiheb1996/book-recommender:latest
+
+            echo "Waiting for application to become ready..."
+
             for i in {1..12}; do
               if curl -fs http://localhost:7860/ > /dev/null; then
-               echo "Application is ready"
-               exit 0
+                echo "Application is ready"
+                break
               fi
 
               echo "Waiting for application..."
               sleep 10
             done
 
-            echo "Application did not become ready"
-            exit 1
-            
+            if ! curl -fs http://localhost:7860/ > /dev/null; then
+              echo "Application did not become ready"
+              echo "Container logs:"
+              docker logs book-recommender --tail 100
+              exit 1
+            fi
+
+            echo "Deployment successful"
           EOF
