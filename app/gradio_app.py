@@ -239,7 +239,7 @@ def create_dashboard(books, db_books, llm):
     ) as dashboard:
 
         gr.Markdown(
-            "# Semantic book recommender"
+            "# Semantic book recommender 🚀"
         )
 
         with gr.Row():
